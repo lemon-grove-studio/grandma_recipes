@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>המתכונים של סבתא</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f8f6;--card:#fffefd;--ink:#1f3532;--mut:#6b8782;--acc:#2a9d94;--clay:#cf7b6f;--line:#d9e8e3;--chip:#e2f0ec;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14211f;--card:#1c2d2a;--ink:#e6f2ef;--mut:#9bb5af;--acc:#4cc2b6;--clay:#e08f83;--line:#2c433f;--chip:#243a36;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14211f;--card:#1c2d2a;--ink:#e6f2ef;--mut:#9bb5af;--acc:#4cc2b6;--clay:#e08f83;--line:#2c433f;--chip:#243a36;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 20px}
+h1{margin:0;font-size:clamp(26px,6vw,38px);font-weight:800;letter-spacing:-.5px}
+h1 span{color:var(--clay)}
+.sub{color:var(--mut);margin:2px 0 0;font-size:15px}
+button{font:inherit;cursor:pointer;border:0;border-radius:999px}
+.btn{background:var(--acc);color:#fff;padding:10px 20px;font-weight:700;white-space:nowrap}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.btn.del{background:transparent;color:#c0392b;border:1px solid #c0392b55}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;width:100%}
+textarea{min-height:110px;resize:vertical}
+.tools{display:grid;gap:10px;margin-bottom:18px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row select{flex:1;min-width:120px}
+.chip{background:var(--chip);color:var(--ink);padding:7px 16px;font-size:14px}
+.chip.on{background:var(--acc);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;cursor:pointer;transition:transform .15s,box-shadow .15s;text-align:right}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 24px #0001}
+.card h3{margin:0 0 8px;font-size:20px}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.b{font-size:12.5px;padding:3px 11px;border-radius:999px;background:var(--chip);color:var(--ink)}
+.b.k-בשרי{background:#f0c6bf;color:#5c2a23}.b.k-חלבי{background:#f3e6c4;color:#5a4a1a}.b.k-פרווה{background:#bfe3da;color:#15473f}
+.meta{color:var(--mut);font-size:14px}
+.empty{text-align:center;color:var(--mut);padding:50px 0}
+dialog{border:0;border-radius:26px;background:var(--bg);color:var(--ink);width:min(640px,94vw);max-height:90vh;padding:24px;box-shadow:0 20px 60px #0005}
+dialog::backdrop{background:#0006}
+dialog h2{margin:0 0 10px}
+.sec{font-weight:700;color:var(--clay);margin:16px 0 6px}
+dialog ul,dialog ol{margin:0;padding-inline-start:22px}
+dialog li{margin:3px 0}
+.acts{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+label{display:block;font-weight:500;font-size:14px;margin:12px 0 4px;color:var(--mut)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#note{color:var(--mut);font-size:13px;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>המתכונים <span>של סבתא</span></h1><p class="sub">מטבח חאלבי – יהדות חאלב, סוריה</p></div>
+</header>
+<div class="tools">
+  <input id="q" type="search" placeholder="חיפוש לפי שם מתכון…">
+  <div class="row" id="kchips"></div>
+  <div class="row">
+    <select id="ftype"></select><select id="fmethod"></select>
+    <select id="ftime"><option value="">כל זמן הכנה</option><option value="30">עד 30 דק’</option><option value="60">עד שעה</option><option value="120">עד שעתיים</option></select>
+  </div>
+</div>
+<div class="grid" id="grid"></div>
+<div class="empty" id="empty" hidden>לא נמצאו מתכונים. אולי הגיע הזמן להוסיף אחד? 🍋</div>
+<p id="note"></p>
+</div>
+
+<dialog id="view"></dialog>
+
+<script>
+const KS=["בשרי","פרווה","חלבי"];
+let db=null,recipes=[],editId=null,kf="",$=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uniq=k=>[...new Set(recipes.map(r=>r[k]).filter(Boolean))].sort();
+
+function opts(sel,label,vals){const v=sel.value;sel.innerHTML=`<option value="">${label}</option>`+vals.map(x=>`<option>${esc(x)}</option>`).join("");sel.value=vals.includes(v)?v:"";}
+function chips(){$("#kchips").innerHTML=["",...KS].map(k=>`<button class="chip ${kf===k?"on":""}" data-k="${k}">${k||"הכול"}</button>`).join("");}
+function render(){
+  opts($("#ftype"),"כל סוגי המנות",uniq("type"));opts($("#fmethod"),"כל צורות ההכנה",uniq("method"));
+  chips();
+  const q=$("#q").value.trim(),t=$("#ftype").value,m=$("#fmethod").value,tm=+$("#ftime").value;
+  const list=recipes.filter(r=>(!q||(r.name||"").includes(q))&&(!kf||r.kashrut===kf)&&(!t||r.type===t)&&(!m||r.method===m)&&(!tm||(+r.time||0)<=tm)).sort((a,b)=>(a.name||"").localeCompare(b.name||"","he"));
+  $("#grid").innerHTML=list.map(r=>`<div class="card" data-id="${esc(r.id)}"><h3>${esc(r.name)}</h3><div class="badges"><span class="b k-${esc(r.kashrut)}">${esc(r.kashrut)}</span>${r.type?`<span class="b">${esc(r.type)}</span>`:""}</div><div class="meta">⏱ ${esc(r.time)} דק’ · ${esc(r.method)}</div></div>`).join("");
+  $("#empty").hidden=list.length>0;
+}
+function show(id){
+  const r=recipes.find(x=>x.id===id);if(!r)return;
+  $("#view").innerHTML=`<h2>${esc(r.name)}</h2><div class="badges"><span class="b k-${esc(r.kashrut)}">${esc(r.kashrut)}</span>${r.type?`<span class="b">${esc(r.type)}</span>`:""}<span class="b">⏱ ${esc(r.time)} דק’</span><span class="b">${esc(r.method)}</span></div>
+  <div class="sec">מצרכים</div><ul>${(r.ingredients||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ul>
+  <div class="sec">אופן הכנה</div><ol>${(r.steps||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ol>
+  <div class="acts"><button class="btn ghost" data-close>סגירה</button></div>`;
+  $("#view").showModal();
+}
+function openForm(id){
+  editId=id||null;const r=recipes.find(x=>x.id===id)||{};
+  $("#ftitle").textContent=id?"עריכת מתכון":"מתכון חדש";
+  $("#f_name").value=r.name||"";$("#f_time").value=r.time||"";$("#f_method").value=r.method||"";$("#f_k").value=r.kashrut||"בשרי";$("#f_type").value=r.type||"";
+  $("#f_ing").value=(r.ingredients||[]).join("\n");$("#f_steps").value=(r.steps||[]).join("\n");
+  $("#form").showModal();
+}
+const lines=s=>s.split("\n").map(x=>x.trim()).filter(Boolean);
+async function save(){
+  const name=$("#f_name").value.trim();if(!name){$("#f_name").focus();return;}
+  if(!db){alert("השמירה לא זמינה כרגע בתצוגה הזו.");return;}
+  const o={name,time:+$("#f_time").value||0,method:$("#f_method").value.trim(),kashrut:$("#f_k").value,type:$("#f_type").value.trim(),ingredients:lines($("#f_ing").value),steps:lines($("#f_steps").value)};
+  try{const ref=editId?db.collection("recipes").doc(editId):db.collection("recipes").doc();await ref.set(o);$("#form").close();}
+  catch(e){alert("לא הצלחתי לשמור. ייתכן שאין הרשאת עריכה לקישור הזה.");}
+}
+document.addEventListener("click",async e=>{
+  const t=e.target;
+  if(t.closest("#add"))return openForm();
+  if(t.closest("[data-k]")){kf=t.closest("[data-k]").dataset.k;return render();}
+  if(t.closest(".card"))return show(t.closest(".card").dataset.id);
+  if(t.dataset.edit){$("#view").close();return openForm(t.dataset.edit);}
+  if(t.dataset.del){if(confirm("למחוק את המתכון לצמיתות?")){try{await db.collection("recipes").doc(t.dataset.del).delete();$("#view").close();}catch(x){alert("המחיקה נכשלה.");}}return;}
+  if(t.hasAttribute("data-close"))return $("#view").close();
+  if(t.id==="save")return save();
+  if(t.id==="cancel")return $("#form").close();
+  if(t.tagName==="DIALOG")t.close();
+});
+["#q","#ftype","#fmethod","#ftime"].forEach(s=>$(s).addEventListener("input",render));
+render();
+fetch("recipes.json",{cache:"no-cache"}).then(r=>r.json()).then(d=>{recipes=d;render();}).catch(()=>{$("#note").textContent="לא ניתן לטעון את המתכונים. יש לפתוח את האתר דרך הקישור שלו ולא כקובץ מקומי.";});
+</script>
+</body>
+</html>
